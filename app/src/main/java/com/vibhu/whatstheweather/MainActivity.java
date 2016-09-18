@@ -63,8 +63,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         ResultCallback<LocationSettingsResult> {
 
     //Ui widgets
+    Geocoder geocoder;
+    String bestProvider;
+    List<Address> user = null;
+    double lat1 = 0;
+    double lng1 = 0;
 
-    double lat1, lat2;
     private String txt_location;
     protected String mLastUpdateTimeTextView;
     protected String mLatitudeTextView;
@@ -185,6 +189,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         // Within {@code onPause()}, we pause location updates, but leave the
         // connection to GoogleApiClient intact.  Here, we resume receiving
         // location updates if the user has requested them.
+        refreshLocation();
+        getForecast(lat1,lng1);
         if (mGoogleApiClient.isConnected() && mRequestingLocationUpdates) {
             //  Toast.makeText(FusedLocationWithSettingsDialog.this, "location was already on so detecting location now", Toast.LENGTH_SHORT).show();
             startLocationUpdates();
@@ -248,11 +254,32 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         checkLocationSettings();
 
 
-        Geocoder geocoder;
-        String bestProvider;
-        List<Address> user = null;
-        double lat1 = 0;
-        double lng1 = 0;
+        refreshLocation();
+
+        //final double lat = 12.9716;
+        //final double lng =  77.5946;
+
+        final double lat = lat1;
+        final double lng = lng1;
+
+        Log.i("Latitude", Double.toString(lat1));
+
+
+        if (lat != 0 && lng != 0) {
+            mRefreshImageView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    getForecast(lat, lng);
+                }
+            });
+
+
+            getForecast(lat, lng);
+        }
+        Log.d(TAG, "Main UI code is running!");
+    }
+
+    private void refreshLocation() {
 
         LocationManager lm = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 
@@ -284,29 +311,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 e.printStackTrace();
             }
         }
-
-        //final double lat = 12.9716;
-        //final double lng =  77.5946;
-
-        final double lat = lat1;
-        final double lng =  lng1;
-
-        Log.i("Latitude", Double.toString(lat1));
-
-
-        if(lat!=0 && lng!=0) {
-                mRefreshImageView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        getForecast(lat, lng);
-                    }
-                });
-
-
-                getForecast(lat, lng);
-            }
-            Log.d(TAG, "Main UI code is running!");
-        }
+    }
 
     //step 1
     protected synchronized void buildGoogleApiClient() {
@@ -605,6 +610,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
                     //move to step 6 in onActivityResult to check what action user has taken on settings dialog
                     status.startResolutionForResult(MainActivity.this, REQUEST_CHECK_SETTINGS);
+
                 } catch (IntentSender.SendIntentException e) {
                     Log.i(TAG, "PendingIntent unable to execute request.");
                 }
@@ -615,6 +621,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 break;
         }
     }
+
+
 
 
     /**
@@ -675,8 +683,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             {
 
                 mLocationLabel.setText(addresses.get(0).getLocality());
-                lat1 = addresses.get(0).getLatitude();
-                lat2 = addresses.get(0).getLongitude();
                 tv_pincode="Pincode="+addresses.get(0).getPostalCode();
                 //  System.out.println(addresses.get(0).getLocality());
             }
