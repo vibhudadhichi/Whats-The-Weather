@@ -13,6 +13,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.daimajia.androidanimations.library.Techniques;
+import com.daimajia.androidanimations.library.YoYo;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
@@ -48,6 +50,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
+        YoYo.with(Techniques.FlipInX)
+                .duration(3500)
+                .playOn(findViewById(R.id.temperatureLabel));
+        YoYo.with(Techniques.FlipInX)
+                .duration(3500)
+                .playOn(findViewById(R.id.iconImageView));
 
         mProgressBar.setVisibility(View.INVISIBLE);
 
@@ -148,6 +156,12 @@ public class MainActivity extends AppCompatActivity {
         mHumidityValue.setText(mCurrentWeather.getHumidity() + "");
         mPrecipValue.setText(mCurrentWeather.getPrecipChance() + "%");
         mSummaryLabel.setText(mCurrentWeather.getSummary());
+        YoYo.with(Techniques.FlipInX)
+                .duration(3500)
+                .playOn(findViewById(R.id.temperatureLabel));
+        YoYo.with(Techniques.FlipInX)
+                .duration(3500)
+                .playOn(findViewById(R.id.iconImageView));
 
         Drawable drawable = getResources().getDrawable(mCurrentWeather.getIconId());
         mIconImageView.setImageDrawable(drawable);
