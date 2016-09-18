@@ -1,16 +1,21 @@
 package com.vibhu.whatstheweather;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
+import android.location.Criteria;
 import android.location.Geocoder;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -57,83 +62,83 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         LocationListener,
         ResultCallback<LocationSettingsResult> {
 
-        //Ui widgets
+    //Ui widgets
+
+    double lat1, lat2;
+    private String txt_location;
+    protected String mLastUpdateTimeTextView;
+    protected String mLatitudeTextView;
+    protected String mLongitudeTextView;
+
+    //New views for city and pincode
+    protected String tv_pincode, tv_city;
 
 
-        private String txt_location;
-        protected String mLastUpdateTimeTextView;
-        protected String mLatitudeTextView;
-        protected String mLongitudeTextView;
+    /**
+     * Constant used in the location settings dialog.
+     */
+    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
 
-        //New views for city and pincode
-        protected String tv_pincode,tv_city;
+    /**
+     * The desired interval for location updates. Inexact. Updates may be more or less frequent.
+     */
+    public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
 
+    /**
+     * The fastest rate for active location updates. Exact. Updates will never be more frequent
+     * than this value.
+     */
+    public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
+            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
-        /**
-         * Constant used in the location settings dialog.
-         */
-        protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+    // Keys for storing activity state in the Bundle.
+    protected final static String KEY_REQUESTING_LOCATION_UPDATES = "requesting-location-updates";
+    protected final static String KEY_LOCATION = "location";
+    protected final static String KEY_LAST_UPDATED_TIME_STRING = "last-updated-time-string";
 
-        /**
-         * The desired interval for location updates. Inexact. Updates may be more or less frequent.
-         */
-        public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
+    /**
+     * Provides the entry point to Google Play services.
+     */
+    protected GoogleApiClient mGoogleApiClient;
 
-        /**
-         * The fastest rate for active location updates. Exact. Updates will never be more frequent
-         * than this value.
-         */
-        public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
-                UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+    /**
+     * Stores parameters for requests to the FusedLocationProviderApi.
+     */
+    protected LocationRequest mLocationRequest;
 
-        // Keys for storing activity state in the Bundle.
-        protected final static String KEY_REQUESTING_LOCATION_UPDATES = "requesting-location-updates";
-        protected final static String KEY_LOCATION = "location";
-        protected final static String KEY_LAST_UPDATED_TIME_STRING = "last-updated-time-string";
+    /**
+     * Stores the types of location services the client is interested in using. Used for checking
+     * settings to determine if the device has optimal location settings.
+     */
+    protected LocationSettingsRequest mLocationSettingsRequest;
 
-        /**
-         * Provides the entry point to Google Play services.
-         */
-        protected GoogleApiClient mGoogleApiClient;
-
-        /**
-         * Stores parameters for requests to the FusedLocationProviderApi.
-         */
-        protected LocationRequest mLocationRequest;
-
-        /**
-         * Stores the types of location services the client is interested in using. Used for checking
-         * settings to determine if the device has optimal location settings.
-         */
-        protected LocationSettingsRequest mLocationSettingsRequest;
-
-        /**
-         * Represents a geographical location.
-         */
-        protected Location mCurrentLocation;
+    /**
+     * Represents a geographical location.
+     */
+    protected Location mCurrentLocation;
 
 
-        // Labels.
-        protected String mLatitudeLabel;
-        protected String mLongitudeLabel;
-        protected String mLastUpdateTimeLabel;
+    // Labels.
+    protected String mLatitudeLabel;
+    protected String mLongitudeLabel;
+    protected String mLastUpdateTimeLabel;
 
-        /**
-         * Tracks the status of the location updates request. Value changes when the user presses the
-         * Start Updates and Stop Updates buttons.
-         */
-        protected Boolean mRequestingLocationUpdates;
+    /**
+     * Tracks the status of the location updates request. Value changes when the user presses the
+     * Start Updates and Stop Updates buttons.
+     */
+    protected Boolean mRequestingLocationUpdates;
 
-        /**
-         * Time when the location was updated represented as a String.
-         */
-        protected String mLastUpdateTime;
-
-
-        int RQS_GooglePlayServices=0;
+    /**
+     * Time when the location was updated represented as a String.
+     */
+    protected String mLastUpdateTime;
 
 
-        public static final String TAG = MainActivity.class.getSimpleName();
+    int RQS_GooglePlayServices = 0;
+
+
+    public static final String TAG = MainActivity.class.getSimpleName();
 
     private CurrentWeather mCurrentWeather;
 
@@ -162,13 +167,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         super.onStart();
 
         int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
-        if (resultCode == ConnectionResult.SUCCESS){
+        if (resultCode == ConnectionResult.SUCCESS) {
 
 //            Toast.makeText(getApplicationContext(),
 //                    "isGooglePlayServicesAvailable SUCCESS",Toast.LENGTH_LONG).show();
 
             mGoogleApiClient.connect();
-        }else{
+        } else {
             GooglePlayServicesUtil.getErrorDialog(resultCode, this, RQS_GooglePlayServices);
         }
 
@@ -203,23 +208,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-         super.onCreate(savedInstanceState);
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
 
+        ButterKnife.inject(this);
+        YoYo.with(Techniques.FlipInX)
+                .duration(3500)
+                .playOn(findViewById(R.id.temperatureLabel));
+        YoYo.with(Techniques.FlipInX)
+                .duration(3500)
+                .playOn(findViewById(R.id.iconImageView));
 
-            ButterKnife.inject(this);
-            YoYo.with(Techniques.FlipInX)
-                    .duration(3500)
-                    .playOn(findViewById(R.id.temperatureLabel));
-            YoYo.with(Techniques.FlipInX)
-                    .duration(3500)
-                    .playOn(findViewById(R.id.iconImageView));
-
-            mProgressBar.setVisibility(View.INVISIBLE);
+        mProgressBar.setVisibility(View.INVISIBLE);
 
         // Set labels.
         mLatitudeLabel = "Latitude ";
@@ -244,26 +247,64 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         checkLocationSettings();
 
-        //Log.i("Latitude",mLatitudeTextView);
 
-        //final double lat = Double.parseDouble(mLatitudeTextView);
-        //final double lng = Double.parseDouble(mLongitudeTextView);
+        Geocoder geocoder;
+        String bestProvider;
+        List<Address> user = null;
+        double lat1 = 0;
+        double lng1 = 0;
 
-            final double lat = 12.9716;
-            final double lng = 77.5946;
+        LocationManager lm = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+
+        Criteria criteria = new Criteria();
+        bestProvider = lm.getBestProvider(criteria, false);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location location = lm.getLastKnownLocation(bestProvider);
+
+        if (location == null){
+            Toast.makeText(getApplicationContext(),"Location Not found",Toast.LENGTH_LONG).show();
+        }else{
+            geocoder = new Geocoder(getApplicationContext());
+            try {
+                user = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                lat1=(double)user.get(0).getLatitude();
+                lng1=(double)user.get(0).getLongitude();
+                //System.out.println(" DDD lat: " +lat1+",  longitude: "+lng1);
+
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        //final double lat = 12.9716;
+        //final double lng =  77.5946;
+
+        final double lat = lat1;
+        final double lng =  lng1;
+
+        Log.i("Latitude", Double.toString(lat1));
 
 
-            mRefreshImageView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    getForecast(lat,lng);
-                }
-            });
+        if(lat!=0 && lng!=0) {
+                mRefreshImageView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        getForecast(lat, lng);
+                    }
+                });
 
 
-
-            getForecast(lat, lng);
-
+                getForecast(lat, lng);
+            }
             Log.d(TAG, "Main UI code is running!");
         }
 
@@ -605,8 +646,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
      */
     private void updateLocationUI() {
         if (mCurrentLocation != null) {
-            mLatitudeTextView = " "+mLatitudeLabel+ mCurrentLocation.getLatitude();
-            mLongitudeTextView = " "+mLongitudeLabel+mCurrentLocation.getLongitude();
+            mLatitudeTextView = String.valueOf(mCurrentLocation.getLatitude());
+            mLongitudeTextView =String.valueOf(mCurrentLocation.getLongitude());
             mLastUpdateTimeTextView = mLastUpdateTimeLabel+" "+mLastUpdateTime;
 
             updateCityAndPincode(mCurrentLocation.getLatitude(),mCurrentLocation.getLongitude());
@@ -634,6 +675,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             {
 
                 mLocationLabel.setText(addresses.get(0).getLocality());
+                lat1 = addresses.get(0).getLatitude();
+                lat2 = addresses.get(0).getLongitude();
                 tv_pincode="Pincode="+addresses.get(0).getPostalCode();
                 //  System.out.println(addresses.get(0).getLocality());
             }
